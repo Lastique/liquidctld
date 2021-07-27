@@ -2,6 +2,7 @@
 
 import os
 import time
+# https://github.com/liquidctl/liquidctl
 from liquidctl import find_liquidctl_devices
 
 device_name = 'H115i'
