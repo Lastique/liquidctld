@@ -8,7 +8,7 @@ from liquidctl import find_liquidctl_devices
 device_name = 'H115i'
 
 temp_down = 55
-temp_up = 65
+temp_up = 70
 pump_mode_down = 'quiet'
 pump_mode_up = 'balanced'
 led_color = [0, 0, 0]
