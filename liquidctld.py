@@ -13,7 +13,7 @@ pump_mode_down = 'quiet'
 pump_mode_up = 'balanced'
 led_color = [0, 0, 0]
 
-monitoring_interval = 3
+monitoring_interval = 5
 
 
 def find_liquidctl_device(device_name):
