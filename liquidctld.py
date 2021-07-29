@@ -7,14 +7,28 @@ from liquidctl import find_liquidctl_devices
 
 device_name = 'H115i'
 
-temp_down = 55
-temp_up = 70
-pump_mode_down = 'quiet'
-pump_mode_up = 'balanced'
+# LED color to set on startup
 led_color = [0, 0, 0]
 
-monitoring_interval = 5
+# CPU temperature to reduce pump speed
+temp_down = 55
+# CPU temperature to increase pump speed
+temp_up = 70
+# Low and high pump speeds
+pump_modes = ['quiet', 'balanced']
 
+# The number of check intervals CPU temp has to remain no higher than the low theshold to reduce the pump speed
+down_intervals = 7
+# The number of check intervals CPU temp has to remain no lower than the high theshold to increase the pump speed
+up_intervals = 5
+
+# Temperature checking interval while we're not in transition between pump speeds
+stable_checking_interval = 5
+# Temperature checking interval while we're in transition between pump speeds
+transient_checking_interval = 1
+
+
+current_pump_mode = None
 
 def find_liquidctl_device(device_name):
     devices = find_liquidctl_devices()
@@ -57,8 +71,10 @@ def set_led_colors(device, mode, colors):
         device.set_color(channel = 'pump', mode = mode, colors = colors)
 
 def set_pump_mode(device, mode):
+    global current_pump_mode
     with device.connect():
-        device.initialize(pump_mode = mode)
+        device.initialize(pump_mode = pump_modes[mode])
+    current_pump_mode = mode
 
 device = find_liquidctl_device(device_name)
 if device is None:
@@ -74,26 +90,38 @@ if temp_filename is None:
 set_led_colors(device, 'fixed', [led_color])
 
 # Start temp monitoring loop
-last_temp = 0
+transitioning = 0
+transition_intervals = 0
 
 while True:
     temp = read_temp(temp_filename)
-    #print(f'CPU temperature: {temp}')
     if temp > 0:
-        if temp > last_temp:
-            if last_temp == 0:
-                if temp >= temp_up:
-                    set_pump_mode(device, pump_mode_up)
+        if current_pump_mode is None:
+            set_pump_mode(device, 1 if temp >= temp_up else 0)
+        else:
+            if current_pump_mode != 1 and temp >= temp_up:
+                if transitioning < 1:
+                    transitioning = 1
+                    transition_intervals = 0
+                if transition_intervals < up_intervals:
+                    transition_intervals += 1
                 else:
-                    set_pump_mode(device, pump_mode_down)
-            elif last_temp < temp_up and temp >= temp_up:
-                #print(f'CPU temperature went from {last_temp} to {temp}')
-                set_pump_mode(device, pump_mode_up)
-        elif temp < last_temp:
-            if last_temp > temp_down and temp <= temp_down:
-                #print(f'CPU temperature went from {last_temp} to {temp}')
-                set_pump_mode(device, pump_mode_down)
+                    set_pump_mode(device, 1)
+                    transitioning = 0
+                    transition_intervals = 0
+            elif current_pump_mode != 0 and temp <= temp_down:
+                if transitioning > -1:
+                    transitioning = -1
+                    transition_intervals = 0
+                if transition_intervals < down_intervals:
+                    transition_intervals += 1
+                else:
+                    set_pump_mode(device, 0)
+                    transitioning = 0
+                    transition_intervals = 0
+            elif transitioning != 0:
+                transitioning = 0
+                transition_intervals = 0
 
-        last_temp = temp
-
-    time.sleep(monitoring_interval)
+    #print(f'CPU temperature: {temp}, pump mode: {current_pump_mode}, transitioning: {transitioning}, transition intervals: {transition_intervals}')
+    time.sleep(stable_checking_interval if transitioning == 0 else transient_checking_interval)
