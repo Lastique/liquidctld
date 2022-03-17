@@ -20,10 +20,10 @@ pump_modes = ['quiet', 'balanced']
 # The number of check intervals CPU temp has to remain no higher than the low theshold to reduce the pump speed
 down_intervals = 7
 # The number of check intervals CPU temp has to remain no lower than the high theshold to increase the pump speed
-up_intervals = 5
+up_intervals = 3
 
 # Temperature checking interval while we're not in transition between pump speeds
-stable_checking_interval = 5
+stable_checking_interval = 2
 # Temperature checking interval while we're in transition between pump speeds
 transient_checking_interval = 1
 
