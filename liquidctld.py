@@ -68,7 +68,7 @@ def read_temp(temp_filename):
 
 def set_led_colors(device, mode, colors):
     with device.connect():
-        device.set_color(channel = 'pump', mode = mode, colors = colors)
+        device.set_color(channel = 'led', mode = mode, colors = colors)
 
 def set_pump_mode(device, mode):
     global current_pump_mode
